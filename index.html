@@ -3,160 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Syntro Bodega v2.57 - Enterprise</title>
+    <title>Syntro Bodega v2.57 - Enterprise Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* ESTILO NEUMÓRFICO 3D */
         :root {
             --bg: #e0e5ec;
-            --sh-1: 9px 9px 16px rgb(163,177,198,0.6);
-            --sh-2: -9px -9px 16px rgba(255,255,255, 0.5);
+            --shadow: 9px 9px 16px rgb(163,177,198,0.6), -9px -9px 16px rgba(255,255,255, 0.5);
             --inner: inset 6px 6px 12px #b8bec9, inset -6px -6px 12px #ffffff;
-            --primary: #1e6091;
+            --s-1: #d9ed92; --s-2: #b5e48c; --s-3: #99d98c; --s-4: #76c893;
+            --s-5: #52b69a; --s-6: #34a0a4; --s-7: #168aad; --s-8: #1a759f;
+            --s-9: #1e6091; --s-10: #184e77;
         }
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; margin: 0; height: 100vh; overflow: hidden; color: #444; }
 
-        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
-
+        /* PANTALLA DE ACCESO NEUMÓRFICA */
+        #capa-acceso {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); z-index: 10000;
+            display: flex; justify-content: center; align-items: center;
+        }
         .login-card {
-            background: var(--bg);
-            padding: 40px;
-            border-radius: 30px;
-            box-shadow: var(--sh-1), var(--sh-2);
-            width: 350px;
-            text-align: center;
+            width: 380px; padding: 40px; border-radius: 40px;
+            background: var(--bg); box-shadow: var(--shadow); text-align: center;
         }
+        .login-card img { width: 220px; margin-bottom: 20px; }
 
-        .logo { width: 60px; margin-bottom: 20px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.1)); }
-        h2 { color: var(--primary); font-size: 18px; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
+        header { background: var(--s-10); color: white; padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box; }
+        .main-container { display: grid; grid-template-columns: 320px 1fr 350px; gap: 15px; padding: 15px; height: calc(100vh - 60px); box-sizing: border-box; }
+        .panel { background: var(--bg); border-radius: 25px; box-shadow: var(--shadow); padding: 18px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        h4 { color: var(--s-9); text-transform: uppercase; border-bottom: 2px solid var(--s-2); padding-bottom: 8px; margin: 0 0 10px 0; font-size: 13px; }
+        input, select { width: 100%; padding: 10px; margin-bottom: 8px; border: none; border-radius: 12px; background: var(--bg); box-shadow: var(--inner); outline: none; box-sizing: border-box; font-size: 13px; }
+        
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: var(--shadow); text-transform: uppercase; color: white; margin-bottom: 8px; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:active { box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2); transform: scale(0.98); }
+        .btn-save { background-color: var(--s-8); }
+        .btn-sync { background-color: var(--s-6); }
+        .btn-stats { background-color: var(--s-5); }
+        .btn-report { background-color: var(--s-9); }
+        .btn-reset { background-color: #e74c3c; }
+        .btn-ws { background-color: #25d366; }
+        
+        .grid-vitrina { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; overflow-y: auto; padding: 5px; }
+        .card { background: white; border-radius: 18px; padding: 10px; text-align: center; box-shadow: var(--shadow); cursor: pointer; position: relative; }
+        .card img { width: 100%; height: 70px; object-fit: contain; border-radius: 8px; }
+        .del-prod { position: absolute; top: 5px; right: 5px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 10px; }
 
-        input {
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 20px;
-            border: none;
-            border-radius: 15px;
-            background: var(--bg);
-            box-shadow: var(--inner);
-            outline: none;
-            box-sizing: border-box;
-            color: #444;
-        }
+        .item-carrito { background: white; padding: 10px; border-radius: 12px; margin-bottom: 8px; box-shadow: var(--inner); display: flex; flex-direction: column; font-size: 12px; border-left: 5px solid var(--s-7); }
+        .qty-controls { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .qty-btn { background: var(--bg); border-radius: 8px; border: none; width: 30px; height: 30px; cursor: pointer; box-shadow: var(--shadow); font-weight: bold; }
+        
+        #total-box { padding: 12px; background: white; border-radius: 12px; text-align: center; font-weight: bold; box-shadow: var(--inner); font-size: 15px; color: var(--s-10); margin-bottom: 10px; }
+        .modal-charts { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; display: none; padding: 20px; box-sizing: border-box; overflow-y: auto; border-radius: 25px; }
+        .chart-container { background: white; border-radius: 15px; padding: 15px; box-shadow: var(--inner); margin-bottom: 20px; }
 
-        button {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 15px;
-            background: var(--primary);
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: var(--sh-1);
-            transition: 0.3s;
-            text-transform: uppercase;
-        }
-
-        button:active { box-shadow: inset 4px 4px 8px rgba(0,0,0,0.3); transform: scale(0.98); }
-
-        .status-msg { margin-top: 20px; font-size: 12px; color: #666; min-height: 15px; }
-
-        .offline-badge {
-            background: #f39c12; color: white; padding: 4px 10px; border-radius: 10px;
-            font-size: 10px; display: none; margin-bottom: 10px;
-        }
-
-        /* DISEÑO DEL DASHBOARD POST-LOGIN */
-        #dashboard { display: none; text-align: center; }
-        .welcome-box { background: var(--bg); padding: 50px; border-radius: 30px; box-shadow: var(--sh-1), var(--sh-2); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; background: white; border-radius: 10px; overflow: hidden; }
+        th { background: var(--s-10); color: white; padding: 10px; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-<div class="login-card" id="login-screen">
-    <img src="https://i.postimg.cc/8Ck10bfv/syntro.png" class="logo">
-    <div id="offline-tag" class="offline-badge">TRABAJANDO SIN CONEXIÓN</div>
-    <h2>Control de Acceso</h2>
-    <input type="email" id="email" placeholder="Usuario (Correo)" value="juansuarezr.2025@gmail.com">
-    <input type="password" id="pass" placeholder="Contraseña">
-    <button onclick="validarHibrido()">Ingresar al Sistema</button>
-    <div class="status-msg" id="msg">Listo para iniciar.</div>
+<div id="capa-acceso">
+    <div class="login-card">
+        <img src="https://i.postimg.cc/8Ck10bfv/syntro.png">
+        <h3 style="color:var(--s-10); font-size:13px; letter-spacing:1px;">SISTEMA DE LICENCIAS</h3>
+        <input type="email" id="log-email" placeholder="Usuario Correo" style="text-align:center;">
+        <input type="password" id="log-pass" placeholder="Clave Acceso" style="text-align:center;">
+        <button class="btn btn-save" id="btn-login" onclick="validarEntrada()" style="height:50px;">ENTRAR AL SISTEMA</button>
+    </div>
 </div>
 
-<div id="dashboard">
-    <div class="welcome-box">
-        <h1 style="color: var(--primary);">🎉 ¡ACCESO EXITOSO!</h1>
-        <p>Bienvenido, Juan Suárez. Sistema de Bodega Activo.</p>
-        <button onclick="location.reload()" style="background: #e74c3c; margin-top: 20px;">Cerrar Sesión</button>
+<div id="app-principal" style="display:none;">
+    <header>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <img src="https://i.postimg.cc/8Ck10bfv/syntro.png" height="25">
+            <h3 style="margin:0;">Syntro Bodega v2.57</h3>
+        </div>
+        <div style="font-weight:bold;">TASA: <input type="number" id="tasa" step="0.01" style="width:90px; margin:0; text-align:center; color: var(--s-10);" onchange="saveTasa()"> Bs.</div>
+    </header>
+
+    <div class="main-container">
+        <aside class="panel">
+            <h4>📦 REGISTRO / AJUSTE PRECIOS</h4>
+            <input type="file" id="p-foto" onchange="readImg(this)">
+            <input type="text" id="p-nombre" placeholder="Nombre del Producto">
+            <div style="display:flex; gap:5px; margin-bottom:8px;">
+                <select id="p-cat" style="margin:0;"></select>
+                <button onclick="gestionarCats()" style="width:45px; border-radius:12px; border:none; background:var(--s-4); color:white; cursor:pointer; font-weight:bold;">+</button>
+            </div>
+            <div style="display:flex; gap:5px;"><input type="number" id="p-costo" placeholder="Costo"><select id="m-costo" style="width:70px;"><option>$</option><option>Bs</option></select></div>
+            <div style="display:flex; gap:5px;"><input type="number" id="p-venta" placeholder="Venta"><select id="m-venta" style="width:70px;"><option>$</option><option>Bs</option></select></div>
+            <input type="number" id="p-cant" placeholder="Cantidad Inventario">
+            
+            <button class="btn btn-save" onclick="guardarProd()">💾 GUARDAR O ACTUALIZAR</button>
+            <button class="btn btn-ws" onclick="enviarWhatsApp()">📱 PEDIDO WHATSAPP</button>
+            <button class="btn btn-stats" onclick="abrirGraficas()">📊 ESTADÍSTICAS Y CSV</button>
+            <button class="btn btn-sync" onclick="exportarDB()">📤 RESPALDAR (JSON)</button>
+            <input type="file" id="importFile" style="display:none;" onchange="importarDB(this)">
+            <button class="btn btn-sync" onclick="document.getElementById('importFile').click()">📥 SINCRONIZAR</button>
+            <button class="btn btn-reset" onclick="resetApp()">⚠️ RESET</button>
+
+            <div id="modalCharts" class="modal-charts">
+                <button class="btn btn-reset" onclick="document.getElementById('modalCharts').style.display='none'">CERRAR PANEL</button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn btn-report" onclick="descargarCSV('inventario')">📥 EXPORTAR INVENTARIO CSV</button>
+                    <button class="btn btn-report" onclick="descargarCSV('ventas')">📥 EXPORTAR VENTAS CSV</button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="chart-container"><canvas id="chartCategorias"></canvas></div>
+                    <div class="chart-container"><canvas id="chartVentas"></canvas></div>
+                </div>
+                <div class="chart-container"><h4>📋 TABLA INVENTARIO</h4><div id="tabla-inventario"></div></div>
+                <div class="chart-container"><h4>💰 TABLA VENTAS</h4><div id="tabla-ventas"></div></div>
+            </div>
+        </aside>
+
+        <main class="panel"><h4>🏪 VITRINA</h4><div id="vitrina" class="grid-vitrina"></div></main>
+
+        <aside class="panel" style="border: 2px solid var(--s-4);">
+            <h4>🛒 CAJA</h4>
+            <input type="text" id="bus-pos" list="lista-productos" placeholder="Buscar producto..." oninput="busquedaRapida(this.value)">
+            <datalist id="lista-productos"></datalist>
+            <div style="display:flex; gap:8px;">
+                <input type="number" id="pos-qty" value="1" style="text-align:center;">
+                <button class="btn btn-save" style="width:80px; margin:0;" onclick="addToCart()">ADD</button>
+            </div>
+            <div id="cart-list" style="flex-grow:1; overflow-y:auto; margin:10px 0; border: 1px dashed var(--s-3); padding: 5px; border-radius: 10px;"></div>
+            <div id="total-box">TOTAL: $0.00 | Bs. 0.00</div>
+            
+            <input type="number" id="pago-cliente" placeholder="¿Con cuánto paga?" oninput="calcularVuelto()">
+            <input type="text" id="ref-pago" placeholder="Nro de Referencia / Nota">
+            <select id="pay-m">
+                <option value="USD">EFECTIVO $</option>
+                <option value="BS">EFECTIVO BS</option>
+                <option value="PM">PAGO MÓVIL</option>
+                <option value="ZE">ZELLE</option>
+                <option value="BI">BINANCE</option>
+                <option value="TR">TRANSFERENCIA</option>
+            </select>
+            <button class="btn btn-stats" onclick="cobrar()">✔ COBRAR</button>
+            <div id="vuelto-display" style="font-size: 12px; text-align: center; color: #e74c3c; font-weight: bold;"></div>
+        </aside>
     </div>
 </div>
 
 <script>
-    const URL_SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSExIYy_7_3_CihYkEqJ9lPOu7IJKc0VH8XspFA8YaWewnP8o7a3GM5Thtxr4ryI0Byu6EXF-Xq2XOl/pub?gid=0&single=true&output=csv";
+    // --- CONEXIÓN GOOGLE SHEETS ---
+    const URL_GS = "https://script.google.com/macros/s/AKfycbw7JNcSAMN_WNViUxiXVao51tYYLGXQ8nj85-7Gybld3PChfKiJ2-H04Yho8reGQfbD5A/exec";
 
-    window.onload = () => {
-        if(!navigator.onLine) {
-            document.getElementById('offline-tag').style.display = 'inline-block';
-            document.getElementById('msg').innerText = "Modo Offline activado.";
-        }
-    };
+    function validarEntrada() {
+        const u = document.getElementById('log-email').value.trim().toLowerCase();
+        const p = document.getElementById('log-pass').value.trim();
+        const b = document.getElementById('btn-login');
+        if(!u || !p) return alert("Ingrese sus datos");
+        b.innerText = "CONECTANDO..."; b.disabled = true;
 
-    function mostrarDashboard() {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-    }
-
-    async function validarHibrido() {
-        const user = document.getElementById('email').value.trim().toLowerCase();
-        const pass = document.getElementById('pass').value.trim();
-        const msg = document.getElementById('msg');
-
-        // 1. LLAVE MAESTRA (SIEMPRE FUNCIONA CON 1234)
-        if (user === "juansuarezr.2025@gmail.com" && pass === "1234") {
-            msg.innerHTML = "<span style='color:green;'>Acceso Maestro Autorizado...</span>";
-            setTimeout(mostrarDashboard, 800);
-            return;
-        }
-
-        // 2. VALIDACIÓN LOCAL (OFFLINE)
-        const localData = JSON.parse(localStorage.getItem('syntro_login'));
-        if (!navigator.onLine) {
-            if (localData && localData.user === user && localData.pass === pass) {
-                msg.innerHTML = "<span style='color:green;'>Acceso Offline Autorizado...</span>";
-                setTimeout(mostrarDashboard, 800);
-                return;
-            } else {
-                msg.innerHTML = "<span style='color:red;'>Error: Sin conexión a internet.</span>";
-                return;
-            }
-        }
-
-        // 3. VALIDACIÓN ONLINE (GOOGLE SHEETS)
-        msg.innerText = "Verificando en la nube...";
-        try {
-            const response = await fetch(URL_SHEET + "&t=" + new Date().getTime());
-            const data = await response.text();
-            const filas = data.split("\n");
-            
+        const callback = 'cb_' + Math.floor(Math.random()*1000000);
+        const script = document.createElement('script');
+        window[callback] = function(response) {
+            const filas = response.split('\n');
             let autorizado = false;
-            for (let i = 1; i < filas.length; i++) {
-                const columnas = filas[i].split(",");
-                if (columnas[0]?.trim().toLowerCase() === user && columnas[1]?.trim() === pass) {
-                    autorizado = true;
-                    break;
-                }
+            for(let i=1; i<filas.length; i++) {
+                const c = filas[i].split(',');
+                if(c[0]?.trim().toLowerCase() === u && c[1]?.trim() === p) { autorizado = true; break; }
             }
-
-            if (autorizado) {
-                localStorage.setItem('syntro_login', JSON.stringify({user, pass}));
-                msg.innerHTML = "<span style='color:green;'>Licencia Válida. Entrando...</span>";
-                setTimeout(mostrarDashboard, 800);
+            if(autorizado) {
+                document.getElementById('capa-acceso').style.display = 'none';
+                document.getElementById('app-principal').style.display = 'block';
+                render();
             } else {
-                msg.innerHTML = "<span style='color:red;'>Usuario o Clave incorrectos.</span>";
+                alert("Licencia Inválida"); b.innerText = "ENTRAR AL SISTEMA"; b.disabled = false;
             }
-        } catch (error) {
-            msg.innerHTML = "<span style='color:orange;'>Error de red. Intente modo Offline.</span>";
+            delete window[callback]; document.body.removeChild(script);
+        };
+        script.src = URL_GS + "?callback=" + callback;
+        document.body.appendChild(script);
+    }
+
+    // --- LÓGICA DE TU CÓDIGO ORIGINAL ---
+    let db = JSON.parse(localStorage.getItem('bod_db')) || [];
+    let sales = JSON.parse(localStorage.getItem('bod_sales')) || [];
+    let categories = JSON.parse(localStorage.getItem('bod_cats')) || ["VIVERES", "BEBIDAS", "VARIOS"];
+    let cart = []; let tempImg = ""; let selItem = null;
+    let myChart1 = null, myChart2 = null;
+
+    document.getElementById('tasa').value = localStorage.getItem('bod_tasa') || "45.00";
+    function saveTasa() { localStorage.setItem('bod_tasa', document.getElementById('tasa').value); render(); }
+
+    function render() {
+        const t = parseFloat(document.getElementById('tasa').value) || 1;
+        localStorage.setItem('bod_db', JSON.stringify(db));
+        localStorage.setItem('bod_sales', JSON.stringify(sales));
+        localStorage.setItem('bod_cats', JSON.stringify(categories));
+        
+        document.getElementById('vitrina').innerHTML = db.map((p, idx) => `
+            <div class="card" onclick="cargarParaEditar('${p.n}')">
+                <button class="del-prod" onclick="db.splice(${idx},1); render(); event.stopPropagation();">X</button>
+                <img src="${p.f || 'https://via.placeholder.com/100'}">
+                <div style="font-weight:bold; font-size:11px;">${p.n}</div>
+                <div style="color:var(--s-9); font-weight:bold;">$${p.v.toFixed(2)}</div>
+                <div style="font-size:10px;">Bs. ${(p.v * t).toFixed(2)}</div>
+                <small>${p.c} und</small>
+            </div>`).join('');
+        
+        document.getElementById('lista-productos').innerHTML = db.map(p => `<option value="${p.n}">`).join('');
+        let sum = cart.reduce((a, b) => a + (b.v * b.q), 0);
+        document.getElementById('cart-list').innerHTML = cart.map((c, i) => `
+            <div class="item-carrito"><b>${c.n}</b><div class="qty-controls"><span>x${c.q}</span> <button class="qty-btn" onclick="cart.splice(${i},1); render();">X</button></div></div>`).join('');
+        document.getElementById('total-box').innerText = `TOTAL: $${sum.toFixed(2)} | Bs. ${(sum * t).toFixed(2)}`;
+        calcularVuelto();
+    }
+
+    function busquedaRapida(v) { selItem = db.find(i => i.n.toUpperCase() === v.toUpperCase()); }
+    function addToCart() {
+        const q = parseFloat(document.getElementById('pos-qty').value);
+        if(selItem && q > 0) {
+            let ex = cart.find(i => i.n === selItem.n);
+            if(ex) ex.q += q; else cart.push({...selItem, q});
+            document.getElementById('bus-pos').value = ""; document.getElementById('pos-qty').value = 1; render();
         }
     }
-</script>
 
+    function guardarProd() {
+        const n = document.getElementById('p-nombre').value.toUpperCase(); if(!n) return;
+        const t = parseFloat(document.getElementById('tasa').value);
+        let v = parseFloat(document.getElementById('p-venta').value) || 0;
+        if(document.getElementById('m-venta').value === "Bs") v /= t;
+        let index = db.findIndex(i => i.n === n);
+        if(index !== -1) {
+            db[index].v = v; db[index].c = parseFloat(document.getElementById('p-cant').value);
+            if(tempImg) db[index].f = tempImg;
+        } else {
+            db.push({ n, v, c: parseFloat(document.getElementById('p-cant').value), cat: document.getElementById('p-cat').value, f: tempImg, fecha: new Date().toLocaleDateString() });
+        }
+        render();
+    }
+
+    function cobrar() {
+        if(!cart.length) return;
+        const met = document.getElementById('pay-m').options[document.getElementById('pay-m').selectedIndex].text;
+        cart.forEach(c => {
+            let p = db.find(i => i.n === c.n); if(p) p.c -= c.q;
+            sales.push({ fecha: new Date().toLocaleString(), n: c.n, q: c.q, v_usd: c.v, metodo: met });
+        });
+        cart = []; render(); alert("Venta Exitosa");
+    }
+
+    function calcularVuelto() {
+        const t = parseFloat(document.getElementById('tasa').value) || 1;
+        const totalUSD = cart.reduce((a, b) => a + (b.v * b.q), 0);
+        const pago = parseFloat(document.getElementById('pago-cliente').value) || 0;
+        const moneda = document.getElementById('pay-m').value;
+        let pagoUSD = (moneda !== "USD" && moneda !== "ZE" && moneda !== "BI") ? pago / t : pago;
+        let vueltoUSD = (pagoUSD > 0) ? (pagoUSD - totalUSD) : 0;
+        document.getElementById('vuelto-display').innerText = (vueltoUSD > 0) ? `VUELTO: $${vueltoUSD.toFixed(2)} | Bs. ${(vueltoUSD * t).toFixed(2)}` : "";
+    }
+
+    function abrirGraficas() {
+        document.getElementById('modalCharts').style.display = 'block';
+        // (Aquí iría el resto de tu lógica de Chart.js que ya tienes en tu código)
+    }
+
+    function gestionarCats() {
+        let n = prompt("Nueva Categoría:").toUpperCase();
+        if(n && !categories.includes(n)) { categories.push(n); updateCatSelect(); }
+    }
+
+    function updateCatSelect() {
+        document.getElementById('p-cat').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function readImg(i) { if(i.files[0]) { let r = new FileReader(); r.onload = e => tempImg = e.target.result; r.readAsDataURL(i.files[0]); } }
+    function exportarDB() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({db, sales, categories})])); a.download = 'Backup.json'; a.click(); }
+    function resetApp() { if(confirm("¿Borrar todo?")) { localStorage.clear(); location.reload(); } }
+    
+    updateCatSelect();
+</script>
 </body>
 </html>

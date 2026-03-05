@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syntro Bodega v2.57 - Enterprise</title>
+    <style>
+        /* ESTILO NEUMÓRFICO 3D */
+        :root {
+            --bg: #e0e5ec;
+            --sh-1: 9px 9px 16px rgb(163,177,198,0.6);
+            --sh-2: -9px -9px 16px rgba(255,255,255, 0.5);
+            --inner: inset 6px 6px 12px #b8bec9, inset -6px -6px 12px #ffffff;
+            --primary: #1e6091;
+        }
+
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+
+        .login-card {
+            background: var(--bg);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: var(--sh-1), var(--sh-2);
+            width: 350px;
+            text-align: center;
+        }
+
+        .logo { width: 60px; margin-bottom: 20px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.1)); }
+        h2 { color: var(--primary); font-size: 18px; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 15px;
+            background: var(--bg);
+            box-shadow: var(--inner);
+            outline: none;
+            box-sizing: border-box;
+            color: #444;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 15px;
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: var(--sh-1);
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        button:active { box-shadow: inset 4px 4px 8px rgba(0,0,0,0.3); transform: scale(0.98); }
+
+        .status-msg { margin-top: 20px; font-size: 12px; color: #666; min-height: 15px; }
+
+        .offline-badge {
+            background: #f39c12; color: white; padding: 4px 10px; border-radius: 10px;
+            font-size: 10px; display: none; margin-bottom: 10px;
+        }
+
+        /* DISEÑO DEL DASHBOARD POST-LOGIN */
+        #dashboard { display: none; text-align: center; }
+        .welcome-box { background: var(--bg); padding: 50px; border-radius: 30px; box-shadow: var(--sh-1), var(--sh-2); }
+    </style>
+</head>
+<body>
+
+<div class="login-card" id="login-screen">
+    <img src="https://i.postimg.cc/8Ck10bfv/syntro.png" class="logo">
+    <div id="offline-tag" class="offline-badge">TRABAJANDO SIN CONEXIÓN</div>
+    <h2>Control de Acceso</h2>
+    <input type="email" id="email" placeholder="Usuario (Correo)" value="juansuarezr.2025@gmail.com">
+    <input type="password" id="pass" placeholder="Contraseña">
+    <button onclick="validarHibrido()">Ingresar al Sistema</button>
+    <div class="status-msg" id="msg">Listo para iniciar.</div>
+</div>
+
+<div id="dashboard">
+    <div class="welcome-box">
+        <h1 style="color: var(--primary);">🎉 ¡ACCESO EXITOSO!</h1>
+        <p>Bienvenido, Juan Suárez. Sistema de Bodega Activo.</p>
+        <button onclick="location.reload()" style="background: #e74c3c; margin-top: 20px;">Cerrar Sesión</button>
+    </div>
+</div>
+
+<script>
+    const URL_SHEET = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSExIYy_7_3_CihYkEqJ9lPOu7IJKc0VH8XspFA8YaWewnP8o7a3GM5Thtxr4ryI0Byu6EXF-Xq2XOl/pub?gid=0&single=true&output=csv";
+
+    window.onload = () => {
+        if(!navigator.onLine) {
+            document.getElementById('offline-tag').style.display = 'inline-block';
+            document.getElementById('msg').innerText = "Modo Offline activado.";
+        }
+    };
+
+    function mostrarDashboard() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+    }
+
+    async function validarHibrido() {
+        const user = document.getElementById('email').value.trim().toLowerCase();
+        const pass = document.getElementById('pass').value.trim();
+        const msg = document.getElementById('msg');
+
+        // 1. LLAVE MAESTRA (SIEMPRE FUNCIONA CON 1234)
+        if (user === "juansuarezr.2025@gmail.com" && pass === "1234") {
+            msg.innerHTML = "<span style='color:green;'>Acceso Maestro Autorizado...</span>";
+            setTimeout(mostrarDashboard, 800);
+            return;
+        }
+
+        // 2. VALIDACIÓN LOCAL (OFFLINE)
+        const localData = JSON.parse(localStorage.getItem('syntro_login'));
+        if (!navigator.onLine) {
+            if (localData && localData.user === user && localData.pass === pass) {
+                msg.innerHTML = "<span style='color:green;'>Acceso Offline Autorizado...</span>";
+                setTimeout(mostrarDashboard, 800);
+                return;
+            } else {
+                msg.innerHTML = "<span style='color:red;'>Error: Sin conexión a internet.</span>";
+                return;
+            }
+        }
+
+        // 3. VALIDACIÓN ONLINE (GOOGLE SHEETS)
+        msg.innerText = "Verificando en la nube...";
+        try {
+            const response = await fetch(URL_SHEET + "&t=" + new Date().getTime());
+            const data = await response.text();
+            const filas = data.split("\n");
+            
+            let autorizado = false;
+            for (let i = 1; i < filas.length; i++) {
+                const columnas = filas[i].split(",");
+                if (columnas[0]?.trim().toLowerCase() === user && columnas[1]?.trim() === pass) {
+                    autorizado = true;
+                    break;
+                }
+            }
+
+            if (autorizado) {
+                localStorage.setItem('syntro_login', JSON.stringify({user, pass}));
+                msg.innerHTML = "<span style='color:green;'>Licencia Válida. Entrando...</span>";
+                setTimeout(mostrarDashboard, 800);
+            } else {
+                msg.innerHTML = "<span style='color:red;'>Usuario o Clave incorrectos.</span>";
+            }
+        } catch (error) {
+            msg.innerHTML = "<span style='color:orange;'>Error de red. Intente modo Offline.</span>";
+        }
+    }
+</script>
+
+</body>
+</html>
